@@ -1013,6 +1013,8 @@ hub-buy,hub-sell`;
       }
     })
     .on("mouseover", (e, d) => {
+      // Suppress tooltip when hovering over a badge element
+      if (e.target.closest("a") || e.target.tagName === "image") return;
       // Tooltip
       const tip = document.getElementById("tooltip");
       const c = col(d);
