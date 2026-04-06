@@ -517,7 +517,7 @@
   // Example: index.html?nodes=111111&links=222222
   // Google Sheets API v4 — key restricted to mplify-products.github.io
   const SHEET_ID   = "1xY0ZnweIXE3pDPyTfiT3nsvB7wCchLZIW5D6jAOFzuQ";
-  const API_KEY    = "AIzaSyBO2A-xcrPpcj9g0ebdlnDlx1AjvP90xzQ";
+  const API_KEY    = "AIzaSyCiYRPbPg2u3SlYm6CxcdgQDHn1yGM4rNs";
   const API_BASE   = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`;
   const DEFAULT_LINKS_GID = "1881293424";
 
@@ -530,6 +530,8 @@
     "2008560393": "lso.q4.links",
     "930832971":  "lso.po5.links",
     "2067951233": "form",
+    "1595771123": "badges",
+    "1595771123": "badges",
   };
 
   // Fetch a sheet by GID and return CSV-like parsed array of objects
@@ -674,6 +676,23 @@ sparkle-sell,hub-sell
 transunion-buy,hub-buy
 transunion-sell,hub-sell
 hub-buy,hub-sell`;
+  }
+
+  // Fetch badge URLs from badges tab
+  const badgeUrls = {
+    glf:               "https://glfcommunity.com/",
+    mplify:            "https://www.mplify.net",
+    solution_provider: "",
+    lso_certified:     "",
+  };
+  try {
+    const badgeRows = await fetchSheet("1595771123");
+    badgeRows.forEach(r => {
+      if (r.badge && r.url) badgeUrls[r.badge.trim()] = r.url.trim();
+    });
+    console.log("Badge URLs loaded:", badgeUrls);
+  } catch(e) {
+    console.warn("Could not fetch badge URLs, using defaults:", e);
   }
 
   // Read title and subtitle from menu config for selected API
@@ -1166,7 +1185,7 @@ hub-buy,hub-sell`;
       const bw  = 54, bh = 30, pad = 3;
       // Wrap in SVG anchor — entire badge is clickable
       const a = grp.append("a")
-        .attr("href", "https://glfcommunity.com/")
+        .attr("href", badgeUrls.glf || "https://glfcommunity.com/")
         .attr("target", "_blank")
         .attr("rel", "noopener")
         .style("cursor", "pointer");
@@ -1196,8 +1215,11 @@ hub-buy,hub-sell`;
       // 4:30 position = 135deg clockwise from 12 = (sin135, -cos135) = (0.707, 0.707)
       // Top-left corner of badge just overlaps the circle edge
       const bx  = r * 0.65, by = r * 0.65;
-      // Badge background
-      grp.append("rect")
+      // Wrap in anchor if URL available
+      const spContainer = badgeUrls.solution_provider
+        ? grp.append("a").attr("href", badgeUrls.solution_provider).attr("target","_blank").attr("rel","noopener").style("cursor","pointer")
+        : grp;
+      spContainer.append("rect")
         .attr("x", bx).attr("y", by)
         .attr("width", bw).attr("height", bh)
         .attr("rx", 3).attr("ry", 3)
@@ -1205,7 +1227,7 @@ hub-buy,hub-sell`;
         .attr("stroke", col(d).light)
         .attr("stroke-width", 1.5);
       // Line 1: Solution
-      grp.append("text")
+      spContainer.append("text")
         .attr("x", bx + bw / 2).attr("y", by + pad + lh * 0.5)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "central")
@@ -1217,7 +1239,7 @@ hub-buy,hub-sell`;
         .attr("pointer-events", "none")
         .text("Solution");
       // Line 2: Provider
-      grp.append("text")
+      spContainer.append("text")
         .attr("x", bx + bw / 2).attr("y", by + pad + lh * 1.5)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "central")
@@ -1240,7 +1262,7 @@ hub-buy,hub-sell`;
       const bx  = -r * 0.62 - bw, by = -r * 0.62 - bh;
       // Wrap in anchor linking to Mplify website
       const a = grp.append("a")
-        .attr("href", "https://www.mplify.net")
+        .attr("href", badgeUrls.mplify || "https://www.mplify.net")
         .attr("target", "_blank")
         .attr("rel", "noopener")
         .style("cursor", "pointer");
@@ -1269,7 +1291,10 @@ hub-buy,hub-sell`;
       const bw  = 56, bh = lh * 2 + pad * 2;
       // 7:30 position — bottom-left: (-0.65r, 0.65r), badge extends left and down
       const bx  = -r * 0.65 - bw, by = r * 0.65;
-      grp.append("rect")
+      const lcContainer = badgeUrls.lso_certified
+        ? grp.append("a").attr("href", badgeUrls.lso_certified).attr("target","_blank").attr("rel","noopener").style("cursor","pointer")
+        : grp;
+      lcContainer.append("rect")
         .attr("x", bx).attr("y", by)
         .attr("width", bw).attr("height", bh)
         .attr("rx", 3).attr("ry", 3)
@@ -1277,7 +1302,7 @@ hub-buy,hub-sell`;
         .attr("stroke", col(d).light)
         .attr("stroke-width", 1.5);
       ["LSO","Certified"].forEach(function(word, i) {
-        grp.append("text")
+        lcContainer.append("text")
           .attr("x", bx + bw / 2).attr("y", by + pad + lh * (i + 0.5))
           .attr("text-anchor", "middle")
           .attr("dominant-baseline", "central")
