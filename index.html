@@ -384,6 +384,43 @@
     }
     #zoom-label { font-size: 11px; color: var(--muted); min-width: 34px; }
 
+    /* Company roster panels */
+    #roster-wrap {
+      position: fixed; top: 660px; left: 32px;
+      width: 400px;
+      display: flex; gap: 10px;
+      z-index: 10;
+      opacity: 0; animation: slideUp .7s ease 1.3s forwards;
+    }
+    .roster-panel {
+      flex: 1;
+      background: rgba(232,237,245,0.95);
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+      overflow-y: auto;
+      max-height: 200px;
+    }
+    .roster-panel h4 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: #1A2744; margin-bottom: 8px;
+      border-bottom: 1px solid rgba(61,123,199,0.2);
+      padding-bottom: 5px;
+    }
+    .roster-panel h4.buy  { color: #3D7BC7; }
+    .roster-panel h4.sell { color: #FD7801; }
+    .roster-item {
+      font-size: 11px; line-height: 1.8;
+      color: #1A2744;
+    }
+    .roster-item a {
+      color: #2a5da0; text-decoration: none;
+    }
+    .roster-item a:hover { text-decoration: underline; }
+
     /* Graph */
     #graph {
       position: fixed; inset: 0;
@@ -495,6 +532,17 @@
     <div id="impl-msg"></div>
   </div>
 
+  <!-- Company roster panels -->
+  <div id="roster-wrap">
+    <div class="roster-panel" id="roster-buy">
+      <h4 class="buy">Buy Side</h4>
+      <div id="roster-buy-list"><span class="roster-item" style="color:var(--muted)">Loading…</span></div>
+    </div>
+    <div class="roster-panel" id="roster-sell">
+      <h4 class="sell">Sell Side</h4>
+      <div id="roster-sell-list"><span class="roster-item" style="color:var(--muted)">Loading…</span></div>
+    </div>
+  </div>
   <div id="debug-bar"></div>
   <div id="info-box">This infographic shows the automation interoperability between companies on the buy and sell side based on the selected item in the dropdown. The data is continuously being updated. If you want to update your company's API status or add new API status data, please fill in the form below by clicking the '+Share my API status' button. For more information, please contact <a id="info-email" href="#"></a></div>
   <svg id="graph"></svg>
@@ -517,7 +565,7 @@
   // Example: index.html?nodes=111111&links=222222
   // Google Sheets API v4 — key restricted to mplify-products.github.io
   const SHEET_ID   = "1xY0ZnweIXE3pDPyTfiT3nsvB7wCchLZIW5D6jAOFzuQ";
-  const API_KEY    = "AIzaSyBO2A-xcrPpcj9g0ebdlnDlx1AjvP90xzQ";
+  const API_KEY    = "AIzaSyCiYRPbPg2u3SlYm6CxcdgQDHn1yGM4rNs";
   const API_BASE   = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`;
   const DEFAULT_LINKS_GID = "1881293424";
 
@@ -761,6 +809,25 @@ hub-buy,hub-sell`;
   subtitleEl.style.visibility = "visible";
   // Store subtitle text so hubLinkLabel can pick it up once defined
   window._subtitleText = subtitleEl.textContent;
+
+  // Populate company rosters
+  (function() {
+    const buyList  = document.getElementById("roster-buy-list");
+    const sellList = document.getElementById("roster-sell-list");
+    const buyNodes  = nodes.filter(n => n.type === "company" && n.group === "buy");
+    const sellNodes = nodes.filter(n => n.type === "company" && n.group === "sell");
+    function renderList(el, items) {
+      if (!items.length) { el.innerHTML = '<span class="roster-item" style="color:var(--muted)">None</span>'; return; }
+      el.innerHTML = items.map(n => {
+        const href = n.url ? (n.url.startsWith("http") ? n.url : "https://" + n.url) : null;
+        return `<div class="roster-item">${href
+          ? `<a href="${href}" target="_blank" rel="noopener">${n.label}</a>`
+          : n.label}</div>`;
+      }).join("");
+    }
+    renderList(buyList,  buyNodes);
+    renderList(sellList, sellNodes);
+  })();
 
   // Assign colors to groups
   const groups   = [...new Set(nodes.map(d => d.group))];
