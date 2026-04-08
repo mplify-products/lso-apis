@@ -830,11 +830,11 @@ hub-buy,hub-sell`;
       if (!items.length) { el.innerHTML = '<span class="roster-item" style="color:var(--muted)">None</span>'; return; }
       el.innerHTML = items.map(n => {
         const href = n.url ? (n.url.startsWith("http") ? n.url : "https://" + n.url) : null;
-        const escaped = n.label.replace(/"/g, "&quot;");
-        const zoomBtn = `<span class="roster-zoom" onclick="window.zoomToNode(this.dataset.label)" data-label="${escaped}" title="Zoom to node">⊕</span>`;
+        const escapedId = n.id.replace(/"/g, "&quot;");
+        const zoomBtn = `<span class="roster-zoom" onclick="window.zoomToNode(this.dataset.id)" data-id="${escapedId}" title="Zoom to node">⊕</span>`;
         const nameHtml = href
-          ? `<a href="${href}" target="_blank" rel="noopener">${n.label}</a>`
-          : `<span class="roster-name" onclick="window.zoomToNode(this.dataset.label)" data-label="${escaped}">${n.label}</span>`;
+          ? `<a href="${href}" target="_blank" rel="noopener" onclick="window.zoomToNode('${escapedId}');return false;">${n.label}</a>`
+          : `<span class="roster-name" onclick="window.zoomToNode(this.dataset.id)" data-id="${escapedId}">${n.label}</span>`;
         return `<div class="roster-item">${zoomBtn}${nameHtml}</div>`;
       }).join("");
     }
@@ -1003,8 +1003,8 @@ hub-buy,hub-sell`;
   svg.call(zoomBehavior.transform, startTransform);
 
   // Global zoom-to-node function for roster clicks
-  window.zoomToNode = function(label) {
-    const node = nodes.find(n => n.label === label);
+  window.zoomToNode = function(nodeId) {
+    const node = nodes.find(n => n.id === nodeId);
     if (!node || node.x === undefined) return;
     const scale = 1.8;
     const tx = W / 2 - node.x * scale;
@@ -1012,13 +1012,12 @@ hub-buy,hub-sell`;
     svg.transition().duration(800).ease(d3.easeCubicInOut)
       .call(zoomBehavior.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
     nodeSel.transition().duration(300)
-      .style("opacity", n => n.label === label ? 1 : 0.15);
+      .style("opacity", n => n.id === nodeId ? 1 : 0.15);
     linkSel.transition().duration(300)
       .style("opacity", l => {
-        const nid = nodes.find(n => n.label === label);
         const sid = l.source.id || l.source;
         const tid = l.target.id || l.target;
-        return nid && (sid === nid.id || tid === nid.id) ? 1 : 0.08;
+        return (sid === nodeId || tid === nodeId) ? 1 : 0.08;
       });
     setTimeout(() => {
       nodeSel.transition().duration(400).style("opacity", 1);
