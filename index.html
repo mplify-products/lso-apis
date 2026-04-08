@@ -420,6 +420,16 @@
       color: #2a5da0; text-decoration: none;
     }
     .roster-item a:hover { text-decoration: underline; }
+    .roster-zoom {
+      color: var(--buy); cursor: pointer; margin-right: 5px;
+      font-size: 13px; opacity: 0.5; transition: opacity .15s;
+      user-select: none;
+    }
+    .roster-zoom:hover { opacity: 1; }
+    .roster-name {
+      cursor: pointer;
+    }
+    .roster-name:hover { color: #2a5da0; text-decoration: underline; }
 
     /* Graph */
     #graph {
@@ -565,7 +575,7 @@
   // Example: index.html?nodes=111111&links=222222
   // Google Sheets API v4 — key restricted to mplify-products.github.io
   const SHEET_ID   = "1xY0ZnweIXE3pDPyTfiT3nsvB7wCchLZIW5D6jAOFzuQ";
-  const API_KEY    = "AIzaSyBO2A-xcrPpcj9g0ebdlnDlx1AjvP90xzQ";
+  const API_KEY    = "AIzaSyCiYRPbPg2u3SlYm6CxcdgQDHn1yGM4rNs";
   const API_BASE   = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`;
   const DEFAULT_LINKS_GID = "1881293424";
 
@@ -820,9 +830,12 @@ hub-buy,hub-sell`;
       if (!items.length) { el.innerHTML = '<span class="roster-item" style="color:var(--muted)">None</span>'; return; }
       el.innerHTML = items.map(n => {
         const href = n.url ? (n.url.startsWith("http") ? n.url : "https://" + n.url) : null;
-        return `<div class="roster-item">${href
+        const escaped = n.label.replace(/"/g, "&quot;");
+        const zoomBtn = `<span class="roster-zoom" onclick="window.zoomToNode(this.dataset.label)" data-label="${escaped}" title="Zoom to node">⊕</span>`;
+        const nameHtml = href
           ? `<a href="${href}" target="_blank" rel="noopener">${n.label}</a>`
-          : n.label}</div>`;
+          : `<span class="roster-name" onclick="window.zoomToNode(this.dataset.label)" data-label="${escaped}">${n.label}</span>`;
+        return `<div class="roster-item">${zoomBtn}${nameHtml}</div>`;
       }).join("");
     }
     renderList(buyList,  buyNodes);
@@ -988,6 +1001,30 @@ hub-buy,hub-sell`;
     });
   svg.call(zoomBehavior);
   svg.call(zoomBehavior.transform, startTransform);
+
+  // Global zoom-to-node function for roster clicks
+  window.zoomToNode = function(label) {
+    const node = nodes.find(n => n.label === label);
+    if (!node || node.x === undefined) return;
+    const scale = 1.8;
+    const tx = W / 2 - node.x * scale;
+    const ty = H / 2 - node.y * scale;
+    svg.transition().duration(800).ease(d3.easeCubicInOut)
+      .call(zoomBehavior.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+    nodeSel.transition().duration(300)
+      .style("opacity", n => n.label === label ? 1 : 0.15);
+    linkSel.transition().duration(300)
+      .style("opacity", l => {
+        const nid = nodes.find(n => n.label === label);
+        const sid = l.source.id || l.source;
+        const tid = l.target.id || l.target;
+        return nid && (sid === nid.id || tid === nid.id) ? 1 : 0.08;
+      });
+    setTimeout(() => {
+      nodeSel.transition().duration(400).style("opacity", 1);
+      linkSel.transition().duration(400).style("opacity", 1);
+    }, 3000);
+  };
 
   // Animate zoom from 30% to 50% over 2 seconds on load
   setTimeout(() => {
